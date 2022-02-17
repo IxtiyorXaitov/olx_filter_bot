@@ -1,5 +1,6 @@
 package dev.ikhtiyor.olxfilterbot;
 
+import dev.ikhtiyor.olxfilterbot.payload.ListItem;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -16,15 +17,11 @@ public class OlxFilterBotApplication {
     public static void main(String[] args) throws IOException {
         SpringApplication.run(OlxFilterBotApplication.class, args);
 
-        Document doc = Jsoup.connect("https://en.wikipedia.org/").get();
+        Document doc = Jsoup.connect("https://www.olx.uz/oz/detskiy-mir/").get();
+        Elements elements = doc.select(".wrap");
 
-        Elements newsHeadlines = doc.select("#mp-itn b a");
-        for (Element headline : newsHeadlines) {
-            System.out.println("title");
-            System.out.println(headline.attr("title"));
-            System.out.println("href");
-            System.out.println(headline.absUrl("href"));
-        }
+
     }
+
 
 }
