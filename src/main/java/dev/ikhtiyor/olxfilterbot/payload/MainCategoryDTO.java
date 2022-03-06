@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class MainCategory {
+public class MainCategoryDTO {
 
     private String title;
     private String url;

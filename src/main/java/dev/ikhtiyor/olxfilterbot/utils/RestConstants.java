@@ -7,6 +7,6 @@ package dev.ikhtiyor.olxfilterbot.utils;
 
 public interface RestConstants {
 
-    String BASE_PATH = "=https://www.olx.uz";
+    String BASE_PATH = "https://olx.uz";
 
 }

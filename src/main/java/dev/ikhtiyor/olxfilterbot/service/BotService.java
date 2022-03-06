@@ -1,6 +1,7 @@
 package dev.ikhtiyor.olxfilterbot.service;
 
-import org.jsoup.nodes.Document;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.objects.Update;
 
 /**
  * @author IkhtiyorDev
@@ -8,5 +9,5 @@ import org.jsoup.nodes.Document;
  **/
 
 public interface BotService {
-
+    BotApiMethod<?> onWebhookUpdateReceived(Update update);
 }

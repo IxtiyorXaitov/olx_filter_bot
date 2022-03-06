@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ListItem {
+public class ListItemDTO {
     private String title;
     private String address;
     private String price;

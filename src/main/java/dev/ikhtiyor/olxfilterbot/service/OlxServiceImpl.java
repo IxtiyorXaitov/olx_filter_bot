@@ -1,7 +1,7 @@
 package dev.ikhtiyor.olxfilterbot.service;
 
-import dev.ikhtiyor.olxfilterbot.payload.ListItem;
-import dev.ikhtiyor.olxfilterbot.payload.MainCategory;
+import dev.ikhtiyor.olxfilterbot.payload.ListItemDTO;
+import dev.ikhtiyor.olxfilterbot.payload.MainCategoryDTO;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author IkhtiyorDev <br/>
@@ -23,11 +25,11 @@ public class OlxServiceImpl implements OlxService {
      * <hr/>
      *
      * @param doc Document from url
-     * @return List<MainCategory>
+     * @return List<MainCategoryDTO>
      */
-    public List<MainCategory> getAllMainCategories(Document doc) {
+    public List<MainCategoryDTO> getAllMainCategories(Document doc) {
 
-        List<MainCategory> mainCategoryList = new ArrayList<>();
+        List<MainCategoryDTO> mainCategoryDTOList = new ArrayList<>();
 
         Elements elements = doc.select(".maincategories-list > div > div > a");
 
@@ -42,15 +44,15 @@ public class OlxServiceImpl implements OlxService {
             String url = element.attr("abs:href"); // "https://www.olx.uz/detskiy-mir/"
             String title = element.text(); // Детский мир
 
-            mainCategoryList.add(new MainCategory(title, url));
+            mainCategoryDTOList.add(new MainCategoryDTO(title, url));
         }
 
-        return mainCategoryList;
+        return mainCategoryDTOList;
     }
 
-    public List<ListItem> getAllListItems(Document doc) {
+    public List<ListItemDTO> getAllListItems(Document doc) {
 
-        List<ListItem> listItems = new ArrayList<>();
+        List<ListItemDTO> listItemDTOS = new ArrayList<>();
 
         Elements elements = doc.select(".maincategories-list > div > div > a");
 
@@ -62,10 +64,37 @@ public class OlxServiceImpl implements OlxService {
             String itemUrl = element.select(".offer-wrapper > table > tbody > tr > td > a").attr("href");
             String imageUrl = element.select("img").attr("src");
 
-            listItems.add(new ListItem(title, address, price, itemUrl, imageUrl));
+            listItemDTOS.add(new ListItemDTO(title, address, price, itemUrl, imageUrl));
 
         }
 
-        return listItems;
+        return listItemDTOS;
+    }
+
+    public List<String> getAllImages(Document doc) {
+
+        Elements elements = doc.select(".swiper-zoom-container > img");
+
+        List<String> imageList = new ArrayList<>();
+
+        for (Element element : elements) {
+            String src = element.attr("src");
+            String dataSrc = element.attr("data-src");
+
+            imageList.add(src);
+            imageList.add(dataSrc);
+        }
+
+        return imageList
+                .stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+    }
+
+    public String getDescription(Document doc) {
+
+        return Objects.requireNonNull(doc.select(".css-g5mtbi-Text").first()).text();
+
     }
 }
