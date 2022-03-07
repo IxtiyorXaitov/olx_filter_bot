@@ -29,7 +29,7 @@ public class UserServiceImpl implements UserService {
      * @return User
      */
     @Override
-    public User checkAndCreateUser(@NotNull Long chatId) {
+    public User checkUserIfNotExistCreate(@NotNull Long chatId) {
         User user;
 
         Optional<User> optionalUser = userRepository.findByChatId(chatId);

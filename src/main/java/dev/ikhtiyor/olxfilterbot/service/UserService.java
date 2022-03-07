@@ -9,6 +9,6 @@ import dev.ikhtiyor.olxfilterbot.entity.User;
 
 public interface UserService {
 
-    User checkAndCreateUser(Long chatId);
+    User checkUserIfNotExistCreate(Long chatId);
 
 }
