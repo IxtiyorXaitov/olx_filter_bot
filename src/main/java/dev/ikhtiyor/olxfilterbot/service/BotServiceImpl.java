@@ -7,6 +7,7 @@ import dev.ikhtiyor.olxfilterbot.utils.MessageConstraints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Contact;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -73,6 +74,23 @@ public class BotServiceImpl implements BotService {
 
     @Override
     public SendMessage welcomingPhoneNumber(Update update, User user) {
+
+        Message message = update.getMessage();
+
+        if (message.hasContact()) {
+
+            Contact contact = message.getContact();
+
+            user.setPhoneNumber(contact.getPhoneNumber());
+            setUserStep(user, UserStepEnum.MAIN_CATEGORY);
+
+            return sendTextMessage(user.getChatId(), MessageConstraints.PLEASE_SELECT_CATEGORY);
+
+        }
+
+        System.out.println(update);
+        System.out.println(user);
+
         return null;
     }
 
