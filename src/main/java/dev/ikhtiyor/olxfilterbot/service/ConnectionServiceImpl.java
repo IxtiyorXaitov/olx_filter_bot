@@ -22,7 +22,7 @@ public class ConnectionServiceImpl implements ConnectionService {
     }
 
     @Override
-    public Document connectMainCategoryPage(String url) {
+    public Document connectToPage(String url) {
         return connect(url);
     }
 

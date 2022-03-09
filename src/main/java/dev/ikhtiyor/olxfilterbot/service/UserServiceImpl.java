@@ -6,7 +6,6 @@ import dev.ikhtiyor.olxfilterbot.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import javax.validation.constraints.NotNull;
 import java.util.Optional;
 
 /**
@@ -29,7 +28,7 @@ public class UserServiceImpl implements UserService {
      * @return User
      */
     @Override
-    public User checkUserIfNotExistCreate(@NotNull Long chatId) {
+    public User checkUserIfNotExistCreate(Long chatId) {
         User user;
 
         Optional<User> optionalUser = userRepository.findByChatId(chatId);

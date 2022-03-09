@@ -2,19 +2,29 @@ package dev.ikhtiyor.olxfilterbot.service;
 
 import dev.ikhtiyor.olxfilterbot.entity.User;
 import dev.ikhtiyor.olxfilterbot.entity.enums.UserStepEnum;
+import dev.ikhtiyor.olxfilterbot.payload.ListItemDTO;
+import dev.ikhtiyor.olxfilterbot.payload.MainCategoryDTO;
 import dev.ikhtiyor.olxfilterbot.repository.UserRepository;
 import dev.ikhtiyor.olxfilterbot.utils.MessageConstraints;
 import lombok.RequiredArgsConstructor;
+import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Contact;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author IkhtiyorDev
@@ -25,26 +35,36 @@ import java.util.Collections;
 public class BotServiceImpl implements BotService {
 
     private final UserService userService;
+    private final OlxService olxService;
     private final UserRepository userRepository;
+    private final ConnectionService connectionService;
 
     @Override
     public User checkUserIfNotExistCreate(Update update) {
 
+        Long chatId = null;
+
         if (update.hasMessage()) {
             Message message = update.getMessage();
-            return userService.checkUserIfNotExistCreate(message.getChatId());
+            chatId = message.getChatId();
+        } else if (update.hasCallbackQuery()) {
+            CallbackQuery callbackQuery = update.getCallbackQuery();
+            chatId = callbackQuery.getMessage().getChatId();
         } else {
-            return null;
+            try {
+                throw new TelegramApiRequestException("User not found");
+            } catch (TelegramApiRequestException e) {
+                e.printStackTrace();
+            }
         }
 
+        return userService.checkUserIfNotExistCreate(chatId);
     }
 
     @Override
     public SendMessage start(Update update, User user) {
 
-
         setUserStep(user, UserStepEnum.WELCOMING_FIRST_NAME);
-
         return sendTextMessage(user.getChatId(), MessageConstraints.PLEASE_ENTER_YOUR_FIRST_NAME);
     }
 
@@ -75,28 +95,35 @@ public class BotServiceImpl implements BotService {
     @Override
     public SendMessage welcomingPhoneNumber(Update update, User user) {
 
-        Message message = update.getMessage();
+        checkHasContact(update);
 
-        if (message.hasContact()) {
+        Contact contact = update.getMessage().getContact();
 
-            Contact contact = message.getContact();
+        user.setPhoneNumber(contact.getPhoneNumber());
+        setUserStep(user, UserStepEnum.MAIN_CATEGORY);
 
-            user.setPhoneNumber(contact.getPhoneNumber());
-            setUserStep(user, UserStepEnum.MAIN_CATEGORY);
+        return sendMainCategory(user.getChatId(), MessageConstraints.PLEASE_SELECT_CATEGORY);
 
-            return sendTextMessage(user.getChatId(), MessageConstraints.PLEASE_SELECT_CATEGORY);
 
-        }
-
-        System.out.println(update);
-        System.out.println(user);
-
-        return null;
     }
 
     @Override
     public SendMessage mainCategory(Update update, User user) {
+
+        checkHasCallbackQuery(update);
+
+        CallbackQuery callbackQuery = update.getCallbackQuery();
+
+        String menuUrl = callbackQuery.getData();
+
+        List<ListItemDTO> allCategoryItems = getAllCategoryItems(menuUrl);
+
+        for (ListItemDTO allCategoryItem : allCategoryItems) {
+            System.out.println(allCategoryItem);
+        }
+
         return null;
+
     }
 
     @Override
@@ -130,10 +157,9 @@ public class BotServiceImpl implements BotService {
     }
 
     private SendMessage sendTextMessage(Long chatId, String message) {
-        return new SendMessage(
-                chatId,
-                message
-        );
+        SendMessage sendMessage = createSendMessage(chatId);
+        sendMessage.setText(message);
+        return sendMessage;
     }
 
     private void setUserStep(User user, UserStepEnum userStepEnum) {
@@ -145,7 +171,7 @@ public class BotServiceImpl implements BotService {
 
     private SendMessage sendReplyKeyboardMarkupMessage(Long chatId, String message, String buttonText) {
 
-        SendMessage sendMessage = new SendMessage();
+        SendMessage sendMessage = createSendMessage(chatId);
         ReplyKeyboardMarkup replyKeyboardMarkup = makeReplyMarkup();
         KeyboardRow keyboardRow = new KeyboardRow();
         KeyboardButton keyboardButton = new KeyboardButton(buttonText);
@@ -154,10 +180,15 @@ public class BotServiceImpl implements BotService {
         replyKeyboardMarkup.setKeyboard(Collections.singletonList(keyboardRow));
 
         sendMessage.setText(message);
-        sendMessage.setChatId(chatId);
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
 
         return sendMessage;
+    }
+
+    private InlineKeyboardMarkup makeInline(List<List<InlineKeyboardButton>> keyboard) {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        inlineKeyboardMarkup.setKeyboard(keyboard);
+        return inlineKeyboardMarkup;
     }
 
     private ReplyKeyboardMarkup makeReplyMarkup() {
@@ -168,4 +199,118 @@ public class BotServiceImpl implements BotService {
 
         return replyKeyboardMarkup;
     }
+
+    private SendMessage sendMainCategory(Long chatId, String message) {
+        SendMessage sendMessage = createSendMessage(chatId);
+
+        List<InlineKeyboardButton> keyboardButtonsForMainCategories = getInlineKeyboardButtonsForMainCategories();
+
+        List<List<InlineKeyboardButton>> result = makeInlineKeyboardButtonList(keyboardButtonsForMainCategories);
+
+        InlineKeyboardMarkup inlineKeyboardMarkup = makeInline(result);
+
+        sendMessage.setText(message);
+        sendMessage.setReplyMarkup(inlineKeyboardMarkup);
+
+        return sendMessage;
+    }
+
+    private List<List<InlineKeyboardButton>> makeInlineKeyboardButtonList(List<InlineKeyboardButton> keyboardButtonsForMainCategories) {
+
+        List<List<InlineKeyboardButton>> result = new ArrayList<>();
+        int size = keyboardButtonsForMainCategories.size();
+
+        for (int i = 0; i < size; i++) {
+
+            List<InlineKeyboardButton> list = new ArrayList<>();
+
+            if (i + 1 == keyboardButtonsForMainCategories.size()) {
+                break;
+            }
+
+            list.add(keyboardButtonsForMainCategories.get(i));
+            list.add(keyboardButtonsForMainCategories.get(i + 1));
+
+            result.add(list);
+        }
+
+        return result;
+    }
+
+    private List<InlineKeyboardButton> getInlineKeyboardButtonsForMainCategories() {
+
+        return getAllMainCategories()
+                .stream()
+                .map(mainCategoryDTO -> {
+                    return makeInlineKeyboardButtonTextAndCallBackData(mainCategoryDTO.getTitle(), mainCategoryDTO.getUrl());
+                })
+                .collect(Collectors.toList());
+
+    }
+
+    private SendMessage createSendMessage(Long chatId) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId.toString());
+        return sendMessage;
+    }
+
+    private List<MainCategoryDTO> getAllMainCategories() {
+
+        Document doc = connectionService.connectToPage("https://www.olx.uz/");
+
+        return olxService.getAllMainCategories(doc);
+    }
+
+    private List<ListItemDTO> getAllCategoryItems(String url) {
+
+        Document doc = connectionService.connectToPage(url);
+
+        return olxService.getAllListItems(doc);
+    }
+
+    private InlineKeyboardButton makeInlineKeyboardButtonTextAndCallBackData(String text, String callBackDate) {
+        InlineKeyboardButton inlineKeyboardButton = new InlineKeyboardButton();
+
+        inlineKeyboardButton.setText(text);
+        inlineKeyboardButton.setCallbackData(callBackDate);
+
+        return inlineKeyboardButton;
+    }
+
+    private void checkHasMessage(Update update) {
+        if (!update.hasMessage()) {
+            try {
+                throw new TelegramApiRequestException("Not message");
+            } catch (TelegramApiRequestException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    private void checkHasCallbackQuery(Update update) {
+        if (!update.hasCallbackQuery()) {
+            try {
+                throw new TelegramApiRequestException("Not CallbackQuery");
+            } catch (TelegramApiRequestException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    private void checkHasContact(Update update) {
+
+        checkHasMessage(update);
+
+        if (!update.getMessage().hasContact()) {
+            try {
+                throw new TelegramApiRequestException("Not Contact");
+            } catch (TelegramApiRequestException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
 }

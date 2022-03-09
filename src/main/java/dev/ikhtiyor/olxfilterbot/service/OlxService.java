@@ -13,12 +13,12 @@ import java.util.List;
 
 public interface OlxService {
 
-    public List<MainCategoryDTO> getAllMainCategories(Document doc);
+    List<MainCategoryDTO> getAllMainCategories(Document doc);
 
-    public List<ListItemDTO> getAllListItems(Document doc);
+    List<ListItemDTO> getAllListItems(Document doc);
 
-    public List<String> getAllImages(Document doc);
+    List<String> getAllImages(Document doc);
 
-    public String getDescription(Document doc);
+    String getDescription(Document doc);
 
 }

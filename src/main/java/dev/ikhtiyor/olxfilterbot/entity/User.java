@@ -23,7 +23,7 @@ import javax.persistence.*;
 @EqualsAndHashCode(callSuper = true)
 public class User extends AbsUUIDNotUserAuditEntity {
 
-    @Column(name = "chat_ic", nullable = false)
+    @Column(name = "chat_id", nullable = false)
     private Long chatId;
 
     @Column(name = "username")

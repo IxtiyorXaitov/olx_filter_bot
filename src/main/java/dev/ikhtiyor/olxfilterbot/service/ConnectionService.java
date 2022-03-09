@@ -11,6 +11,6 @@ public interface ConnectionService {
 
     Document connectHomePage();
 
-    Document connectMainCategoryPage(String url);
+    Document connectToPage(String url);
 
 }
