@@ -2,6 +2,7 @@ package dev.ikhtiyor.olxfilterbot.service;
 
 import dev.ikhtiyor.olxfilterbot.entity.User;
 import dev.ikhtiyor.olxfilterbot.entity.enums.UserStepEnum;
+import dev.ikhtiyor.olxfilterbot.exceptions.TelegramBotException;
 import dev.ikhtiyor.olxfilterbot.payload.ListItemDTO;
 import dev.ikhtiyor.olxfilterbot.payload.MainCategoryDTO;
 import dev.ikhtiyor.olxfilterbot.repository.UserRepository;
@@ -19,7 +20,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,15 +50,20 @@ public class BotServiceImpl implements BotService {
         } else if (update.hasCallbackQuery()) {
             CallbackQuery callbackQuery = update.getCallbackQuery();
             chatId = callbackQuery.getMessage().getChatId();
-        } else {
-            try {
-                throw new TelegramApiRequestException("User not found");
-            } catch (TelegramApiRequestException e) {
-                e.printStackTrace();
-            }
         }
 
         return userService.checkUserIfNotExistCreate(chatId);
+    }
+
+    @Override
+    public void checkUserEnterStartCommand(Update update, User user) {
+        if (update.hasMessage()) {
+            String text = update.getMessage().getText();
+
+            if (text.equals("/start")) {
+                start(update, user);
+            }
+        }
     }
 
     @Override
@@ -103,7 +108,6 @@ public class BotServiceImpl implements BotService {
         setUserStep(user, UserStepEnum.MAIN_CATEGORY);
 
         return sendMainCategory(user.getChatId(), MessageConstraints.PLEASE_SELECT_CATEGORY);
-
 
     }
 
@@ -279,24 +283,14 @@ public class BotServiceImpl implements BotService {
 
     private void checkHasMessage(Update update) {
         if (!update.hasMessage()) {
-            try {
-                throw new TelegramApiRequestException("Not message");
-            } catch (TelegramApiRequestException e) {
-                e.printStackTrace();
-            }
+            throw TelegramBotException.botThrow(update.getMessage().getChatId(), "Wrong input data!");
         }
-
     }
 
     private void checkHasCallbackQuery(Update update) {
         if (!update.hasCallbackQuery()) {
-            try {
-                throw new TelegramApiRequestException("Not CallbackQuery");
-            } catch (TelegramApiRequestException e) {
-                e.printStackTrace();
-            }
+            throw TelegramBotException.botThrow(update.getMessage().getChatId(), "Wrong input data!");
         }
-
     }
 
     private void checkHasContact(Update update) {
@@ -304,13 +298,8 @@ public class BotServiceImpl implements BotService {
         checkHasMessage(update);
 
         if (!update.getMessage().hasContact()) {
-            try {
-                throw new TelegramApiRequestException("Not Contact");
-            } catch (TelegramApiRequestException e) {
-                e.printStackTrace();
-            }
+            throw TelegramBotException.botThrow(update.getMessage().getChatId(), "Wrong input data!");
         }
-
     }
 
 }

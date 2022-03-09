@@ -13,6 +13,8 @@ public interface BotService {
 
     User checkUserIfNotExistCreate(Update update);
 
+    void checkUserEnterStartCommand(Update update, User user);
+
     SendMessage start(Update update, User user);
 
     SendMessage welcomingFirstName(Update update, User user);
@@ -28,4 +30,5 @@ public interface BotService {
     SendMessage itemList(Update update, User user);
 
     SendMessage item(Update update, User user);
+
 }
